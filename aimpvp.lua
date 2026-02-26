@@ -1,4 +1,4 @@
-local FlurioreFixLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/jayetcixgaming2010/UI/refs/heads/main/ui.lua"))()
+local UILib = loadstring(game:HttpGet("https://github.com/Catsourehub/Sourecathub/blob/main/CatDiPitien.lua?raw=true"))()
 local AimlockModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/NgotBand/BloxFruits/refs/heads/main/Beta/Aim/Dk"))()
 local ESPModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/NgotBand/BloxFruits/refs/heads/main/Beta/Aim/Gk"))()
 local SilentAimModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/NgotBand/BloxFruits/refs/heads/main/Beta/Aim/Bg"))()
@@ -33,60 +33,67 @@ local execStatus = (executor == "Xeno" or executor:lower():find("solara") or exe
 local Settings = OthersStuffsModule.LoadSettings()
 
 -- ════════════════════════════════════════════
---          TOGGLE BUTTON (Bật/Tắt UI)
+--          TOGGLE BUTTON (Copy từ CatTaiHub)
 -- ════════════════════════════════════════════
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SapiToggleGui"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-pcall(function() screenGui.Parent = game:GetService("CoreGui") end)
-if not screenGui.Parent then
-    screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-end
+local _TweenService = game:GetService("TweenService")
+local _VIM = game:GetService("VirtualInputManager")
 
-local imageButton = Instance.new("ImageButton")
-imageButton.Size = UDim2.new(0, 50, 0, 50)
-imageButton.Position = UDim2.new(0, 10, 0, 10)
-imageButton.Image = "rbxassetid://115377474207871"
-imageButton.BackgroundTransparency = 1
-imageButton.ZIndex = 9999
-imageButton.Parent = screenGui
-
--- Draggable logic
-local _dragging, _dragInput, _dragStart, _startPos
-imageButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        _dragging = true
-        _dragStart = input.Position
-        _startPos = imageButton.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                _dragging = false
-            end
-        end)
-    end
+local _ScreenGui = Instance.new("ScreenGui")
+local _ImageButton = Instance.new("ImageButton")
+local _UICorner = Instance.new("UICorner")
+local _UIStroke = Instance.new("UIStroke")
+local _UIGradient = Instance.new("UIGradient")
+_ScreenGui.Parent = game:GetService("CoreGui")
+_ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+_ScreenGui.ResetOnSpawn = false
+_ImageButton.Parent = _ScreenGui
+_ImageButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+_ImageButton.BorderSizePixel = 0
+_ImageButton.Position = UDim2.new(0.12, 0, 0.095, 0)
+_ImageButton.Size = UDim2.new(0, 60, 0, 60)
+_ImageButton.Image = "http://www.roblox.com/asset/?id=115377474207871"
+_ImageButton.ImageTransparency = 0.1
+_ImageButton.Active = true
+_ImageButton.Draggable = true
+_UIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
+})
+_UIGradient.Parent = _ImageButton
+_UIStroke.Color = Color3.fromRGB(255, 255, 255)
+_UIStroke.Thickness = 2.5
+_UIStroke.Transparency = 0.1
+_UIStroke.Parent = _ImageButton
+_UICorner.CornerRadius = UDim.new(1, 0)
+_UICorner.Parent = _ImageButton
+local _Tweens = (function()
+    local _s = _ImageButton.Size
+    return {
+        ["zoomIn"]  = _TweenService:Create(_ImageButton, TweenInfo.new(0.2, Enum.EasingStyle.Back),   {["Size"] = UDim2.new(0, _s.X.Offset * 0.85, 0, _s.Y.Offset * 0.85)}),
+        ["zoomOut"] = _TweenService:Create(_ImageButton, TweenInfo.new(0.3, Enum.EasingStyle.Elastic), {["Size"] = _s}),
+        ["glowIn"]  = _TweenService:Create(_UIStroke,    TweenInfo.new(0.2), {["Thickness"] = 4, ["Transparency"] = 0}),
+        ["glowOut"] = _TweenService:Create(_UIStroke,    TweenInfo.new(0.3), {["Thickness"] = 2.5, ["Transparency"] = 0.1}),
+    }
+end)()
+_ImageButton.MouseButton1Down:Connect(function()
+    _Tweens.zoomIn:Play()
+    _Tweens.glowIn:Play()
+    _VIM:SendKeyEvent(true, Enum.KeyCode.End, false, game)
 end)
-imageButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        _dragInput = input
-    end
+_ImageButton.MouseButton1Up:Connect(function()
+    _Tweens.zoomOut:Play()
+    _Tweens.glowOut:Play()
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == _dragInput and _dragging then
-        local delta = input.Position - _dragStart
-        imageButton.Position = UDim2.new(
-            _startPos.X.Scale, _startPos.X.Offset + delta.X,
-            _startPos.Y.Scale, _startPos.Y.Offset + delta.Y
-        )
-    end
+_ImageButton.MouseEnter:Connect(function()
+    _TweenService:Create(_ImageButton, TweenInfo.new(0.3), {["BackgroundColor3"] = Color3.fromRGB(40, 40, 40)}):Play()
+end)
+_ImageButton.MouseLeave:Connect(function()
+    _TweenService:Create(_ImageButton, TweenInfo.new(0.3), {["BackgroundColor3"] = Color3.fromRGB(20, 20, 20)}):Play()
 end)
 
--- ════════════════════════════════════════════
---              FLURIORE UI SETUP
--- ════════════════════════════════════════════
 
-local Notify = FlurioreFixLib:MakeNotify({
+UILib:MakeNotify({
     ["Title"] = "Sapi Hub BF PvP",
     ["Description"] = "Welcome!",
     ["Color"] = Color3.fromRGB(255, 0, 255),
@@ -95,7 +102,7 @@ local Notify = FlurioreFixLib:MakeNotify({
     ["Delay"] = 10
 })
 
-local FlurioreGui = FlurioreFixLib:MakeGui({
+local UIGui = UILib.MakeGui(UILib, {
     ["NameHub"] = "Sapi Hub BF PvP ˃ᴗ˂",
     ["Description"] = "Fix By Dragon Toro",
     ["Color"] = Color3.fromRGB(255, 0, 255),
@@ -108,7 +115,7 @@ local FlurioreGui = FlurioreFixLib:MakeGui({
 --          TAB 1: Executor Status
 -- ════════════════════════════════════════════
 
-local TabStatus = FlurioreGui:CreateTab({
+local TabStatus = UIGui:CreateTab({
     ["Name"] = "Status",
     ["Icon"] = "rbxassetid://7733960981"
 })
@@ -129,7 +136,7 @@ SectionStatus:AddParagraph({
 --          TAB 2: ChangesLogs
 -- ════════════════════════════════════════════
 
-local TabLogs = FlurioreGui:CreateTab({
+local TabLogs = UIGui:CreateTab({
     ["Name"] = "Logs",
     ["Icon"] = "rbxassetid://7734053495"
 })
@@ -145,7 +152,7 @@ SectionLogs:AddParagraph({
 --          TAB 3: Aimbot
 -- ════════════════════════════════════════════
 
-local TabAim = FlurioreGui:CreateTab({
+local TabAim = UIGui:CreateTab({
     ["Name"] = "Aimbot",
     ["Icon"] = "rbxassetid://7733960981"
 })
@@ -222,7 +229,7 @@ local PredictionAimlockAmountDropdown = SectionAim:AddDropdown({
 --          TAB 4: Silent Aimbot
 -- ════════════════════════════════════════════
 
-local TabSilent = FlurioreGui:CreateTab({
+local TabSilent = UIGui:CreateTab({
     ["Name"] = "Silent Aim",
     ["Icon"] = "rbxassetid://7734053495"
 })
@@ -382,7 +389,7 @@ local ZskillMOneToggle = SectionSilent:AddToggle({
 --          TAB 5: Features
 -- ════════════════════════════════════════════
 
-local TabFeatures = FlurioreGui:CreateTab({
+local TabFeatures = UIGui:CreateTab({
     ["Name"] = "Features",
     ["Icon"] = "rbxassetid://7733960981"
 })
@@ -613,7 +620,7 @@ local OpponentToggle = SectionFeatures:AddToggle({
 --          TAB 6: Settings Manager
 -- ════════════════════════════════════════════
 
-local TabSettings = FlurioreGui:CreateTab({
+local TabSettings = UIGui:CreateTab({
     ["Name"] = "Setting",
     ["Icon"] = "rbxassetid://7734053495"
 })
@@ -713,7 +720,7 @@ local ThemesDropdown = SectionManager:AddDropdown({
         local val = type(selected) == "table" and selected[1] or selected
         local newColor = UiSettingsModule.themes[val]
         if newColor then
-            UiSettingsModule:updateSchemeColor(newColor, FlurioreGui)
+            UiSettingsModule:updateSchemeColor(newColor, UIGui)
             Settings["Themes"] = val
         end
     end
@@ -729,7 +736,7 @@ local BackgroundThemesDropdown = SectionManager:AddDropdown({
         local val = type(selected) == "table" and selected[1] or selected
         local newColor = UiSettingsModule.backgroundThemes[val]
         if newColor then
-            UiSettingsModule:updateBackgroundColor(newColor, FlurioreGui)
+            UiSettingsModule:updateBackgroundColor(newColor, UIGui)
             Settings["BackgroundThemes"] = val
         end
     end
@@ -745,7 +752,7 @@ local TextColorDropdown = SectionManager:AddDropdown({
         local val = type(selected) == "table" and selected[1] or selected
         local newColor = UiSettingsModule.themes[val]
         if newColor then
-            UiSettingsModule:updateTextColor(newColor, FlurioreGui)
+            UiSettingsModule:updateTextColor(newColor, UIGui)
             Settings["TextColor"] = val
         end
     end
@@ -809,24 +816,10 @@ OthersStuffsModule.StartFruitNotifier()
 --          KEYBINDS
 -- ════════════════════════════════════════════
 
--- Tự quản lý trạng thái hiện/ẩn UI
-local uiVisible = true
-
-local function ToggleUI()
-    uiVisible = not uiVisible
-    FlurioreGui:Toggle()
-end
-
--- Button click: bật/tắt UI, button vẫn hiển thị
-imageButton.MouseButton1Click:Connect(function()
-    ToggleUI()
-end)
-
--- Phím M: bật/tắt UI đồng thời ẩn/hiện button
+-- Phím M: ẩn/hiện button toggle
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.M then
-        ToggleUI()
-        imageButton.Visible = not imageButton.Visible
+        _ImageButton.Visible = not _ImageButton.Visible
     end
 end)
 

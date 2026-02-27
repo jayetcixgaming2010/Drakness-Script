@@ -1,4 +1,4 @@
-local UILib = loadstring(game:HttpGet("https://github.com/Catsourehub/Sourecathub/blob/main/CatDiPitien.lua?raw=true"))()
+local FlurioreFixLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/jayetcixgaming2010/UI/refs/heads/main/FlurioreLibFix.lua"))()
 local AimlockModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/NgotBand/BloxFruits/refs/heads/main/Beta/Aim/Dk"))()
 local ESPModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/NgotBand/BloxFruits/refs/heads/main/Beta/Aim/Gk"))()
 local SilentAimModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/NgotBand/BloxFruits/refs/heads/main/Beta/Aim/Bg"))()
@@ -12,7 +12,13 @@ local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
 local PlayerList = {"None"}
 
--- Detect executor
+-- Ensure this runs as a LocalScript (client). Abort early on server scripts.
+local player = Players.LocalPlayer
+if not player then
+    warn("test.lua must run as a LocalScript (client). Aborting GUI creation.")
+    return
+end
+
 local executor = "Unknown"
 if syn then
     executor = "Synapse X"
@@ -29,98 +35,230 @@ end
 
 local execStatus = (executor == "Xeno" or executor:lower():find("solara") or executor:lower():find("krnl")) and "Not Working" or "Working"
 
--- Load Settings
 local Settings = OthersStuffsModule.LoadSettings()
-
--- ════════════════════════════════════════════
---          TOGGLE BUTTON (Copy từ CatTaiHub)
--- ════════════════════════════════════════════
 
 local _TweenService = game:GetService("TweenService")
 local _VIM = game:GetService("VirtualInputManager")
 
-local _ScreenGui = Instance.new("ScreenGui")
-local _ImageButton = Instance.new("ImageButton")
-local _UICorner = Instance.new("UICorner")
-local _UIStroke = Instance.new("UIStroke")
-local _UIGradient = Instance.new("UIGradient")
-_ScreenGui.Parent = game:GetService("CoreGui")
-_ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-_ScreenGui.ResetOnSpawn = false
-_ImageButton.Parent = _ScreenGui
-_ImageButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-_ImageButton.BorderSizePixel = 0
-_ImageButton.Position = UDim2.new(0.12, 0, 0.095, 0)
-_ImageButton.Size = UDim2.new(0, 60, 0, 60)
-_ImageButton.Image = "http://www.roblox.com/asset/?id=115377474207871"
-_ImageButton.ImageTransparency = 0.1
-_ImageButton.Active = true
-_ImageButton.Draggable = true
-_UIGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 100)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
+local isUIEnabled = true
+local UIEnabled = true -- Biến trạng thái UI
+
+-- Hàm toggle UI: điều khiển ScreenGui do FlurioreFixLib tạo (HirimiGui)
+local function toggleUI()
+    UIEnabled = not UIEnabled
+    local hirimi = nil
+    -- Try CoreGui first, then PlayerGui (library may parent to PlayerGui)
+    local coreGui = game:GetService("CoreGui")
+    hirimi = coreGui:FindFirstChild("HirimiGui")
+    if not hirimi and player and player:FindFirstChild("PlayerGui") then
+        hirimi = player.PlayerGui:FindFirstChild("HirimiGui")
+    end
+    if hirimi and hirimi:IsA("ScreenGui") then
+        hirimi.Enabled = UIEnabled
+        -- Ensure main container is visible if the library previously hid it via Min/Close
+        local holder = hirimi:FindFirstChild("DropShadowHolder")
+        if holder and holder:IsA("Frame") then
+            pcall(function() holder.Visible = UIEnabled end)
+        end
+    end
+    -- cập nhật label trạng thái nếu có
+    if StatusLabel then
+        if UIEnabled then
+            StatusLabel.Text = "UI: ON"
+            StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            StatusLabel.Text = "UI: OFF"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        end
+    end
+end
+
+-- Tạo ScreenGui và ImageButton để mở/đóng UI
+local ScreenGui = Instance.new("ScreenGui")
+local ImageButton = Instance.new("ImageButton")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Name = "ToggleButtonGui"
+
+ImageButton.Parent = ScreenGui
+ImageButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ImageButton.BackgroundTransparency = 1 -- Nền trong suốt
+ImageButton.BorderSizePixel = 0
+ImageButton.Position = UDim2.new(0.120833337 - 0.10, 0, 0.0952890813 + 0.01, 0)
+ImageButton.Size = UDim2.new(0, 50, 0, 50)
+ImageButton.Draggable = true
+ImageButton.Image = "rbxassetid://101138166721164"
+ImageButton.Name = "ToggleButton"
+
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = ImageButton
+
+-- Tạo TextLabel để hiển thị trạng thái (có thể bỏ qua nếu không cần)
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = ImageButton
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Size = UDim2.new(1, 0, 0.3, 0)
+StatusLabel.Position = UDim2.new(0, 0, 1, 5)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Text = "UI: ON"
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 12
+StatusLabel.TextStrokeTransparency = 0.5
+
+-- Handle the event when the ImageButton is clicked
+ImageButton.MouseButton1Click:Connect(function()
+    -- toggle giao diện chính do thư viện tạo
+    toggleUI()
+    -- Tạo hiệu ứng click (dùng LocalPlayer mouse)
+    local ok, m = pcall(function() return player:GetMouse() end)
+    if ok and m then
+        CircleClick(ImageButton, m.X or 0, m.Y or 0)
+    else
+        CircleClick(ImageButton, 0, 0)
+    end
+end)
+
+-- Thêm hiệu ứng hover
+ImageButton.MouseEnter:Connect(function()
+    game:GetService("TweenService"):Create(
+        ImageButton,
+        TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {Size = UDim2.new(0, 55, 0, 55)}
+    ):Play()
+end)
+
+ImageButton.MouseLeave:Connect(function()
+    game:GetService("TweenService"):Create(
+        ImageButton,
+        TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {Size = UDim2.new(0, 50, 0, 50)}
+    ):Play()
+end)
+
+-- Thêm phím tắt để mở/đóng UI (ví dụ: RightControl)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        -- Toggle UI directly and show click effect
+        toggleUI()
+        local ok, m = pcall(function() return player:GetMouse() end)
+        if ok and m then
+            CircleClick(ImageButton, m.X or 0, m.Y or 0)
+        else
+            CircleClick(ImageButton, 0, 0)
+        end
+    end
+end)
+
+-- Hàm CircleClick (nếu chưa có)
+function CircleClick(Button, X, Y)
+    coroutine.resume(
+        coroutine.create(
+            function()
+                local Circle = Instance.new("ImageLabel")
+                Circle.Parent = Button
+                Circle.Name = "Circle"
+                Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                Circle.BackgroundTransparency = 1.000
+                Circle.ZIndex = 10
+                Circle.Image = "rbxassetid://101138166721164"
+                Circle.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                Circle.ImageTransparency = 0.7
+                local NewX = X - Circle.AbsolutePosition.X
+                local NewY = Y - Circle.AbsolutePosition.Y
+                Circle.Position = UDim2.new(0, NewX, 0, NewY)
+
+                local Time = 0.2
+                Circle:TweenSizeAndPosition(
+                    UDim2.new(0, 30.25, 0, 30.25),
+                    UDim2.new(0, NewX - 15, 0, NewY - 10),
+                    "Out",
+                    "Quad",
+                    Time,
+                    false,
+                    nil
+                )
+                for i = 1, 10 do
+                    Circle.ImageTransparency = Circle.ImageTransparency + 0.01
+                    wait(Time / 10)
+                end
+                Circle:Destroy()
+            end
+        )
+    )
+end
+
+
+local Notify = FlurioreFixLib:MakeNotify({
+	["Title"] = "Drakness Hub",
+	["Description"] = "Welcome to Drakness Hub",
+	["Color"] = Color3.fromRGB(255, 0, 255),
+	["Content"] = "Welcome to Drakness Hub",
+	["Time"] = 1,
+	["Delay"] = 10
 })
-_UIGradient.Parent = _ImageButton
-_UIStroke.Color = Color3.fromRGB(255, 255, 255)
-_UIStroke.Thickness = 2.5
-_UIStroke.Transparency = 0.1
-_UIStroke.Parent = _ImageButton
-_UICorner.CornerRadius = UDim.new(1, 0)
-_UICorner.Parent = _ImageButton
-local _Tweens = (function()
-    local _s = _ImageButton.Size
-    return {
-        ["zoomIn"]  = _TweenService:Create(_ImageButton, TweenInfo.new(0.2, Enum.EasingStyle.Back),   {["Size"] = UDim2.new(0, _s.X.Offset * 0.85, 0, _s.Y.Offset * 0.85)}),
-        ["zoomOut"] = _TweenService:Create(_ImageButton, TweenInfo.new(0.3, Enum.EasingStyle.Elastic), {["Size"] = _s}),
-        ["glowIn"]  = _TweenService:Create(_UIStroke,    TweenInfo.new(0.2), {["Thickness"] = 4, ["Transparency"] = 0}),
-        ["glowOut"] = _TweenService:Create(_UIStroke,    TweenInfo.new(0.3), {["Thickness"] = 2.5, ["Transparency"] = 0.1}),
-    }
-end)()
-_ImageButton.MouseButton1Down:Connect(function()
-    _Tweens.zoomIn:Play()
-    _Tweens.glowIn:Play()
-    _VIM:SendKeyEvent(true, Enum.KeyCode.End, false, game)
-end)
-_ImageButton.MouseButton1Up:Connect(function()
-    _Tweens.zoomOut:Play()
-    _Tweens.glowOut:Play()
-end)
-_ImageButton.MouseEnter:Connect(function()
-    _TweenService:Create(_ImageButton, TweenInfo.new(0.3), {["BackgroundColor3"] = Color3.fromRGB(40, 40, 40)}):Play()
-end)
-_ImageButton.MouseLeave:Connect(function()
-    _TweenService:Create(_ImageButton, TweenInfo.new(0.3), {["BackgroundColor3"] = Color3.fromRGB(20, 20, 20)}):Play()
-end)
-
-
-UILib:MakeNotify({
-    ["Title"] = "Sapi Hub BF PvP",
-    ["Description"] = "Welcome!",
-    ["Color"] = Color3.fromRGB(255, 0, 255),
-    ["Content"] = "Welcome to Sapi Hub BF PvP ˃ᴗ˂",
-    ["Time"] = 1,
-    ["Delay"] = 10
+local FlurioreGui = FlurioreFixLib:MakeGui({
+	["NameHub"] = "Drakness Hub",
+	["Description"] = "Make by Drakness Team",
+	["Color"] = Color3.fromRGB(255, 0, 255),
+	["Logo Player"] = "https://www.roblox.com/headshot-thumbnail/image?userId="..game:GetService("Players").LocalPlayer.UserId .."&width=420&height=420&format=png",
+	["Name Player"] = tostring(game:GetService("Players").LocalPlayer.Name),
+	["Tab Width"] = 125
+})
+local Tab1 = FlurioreGui:CreateTab({
+	["Name"] = "Main",
+	["Icon"] = "rbxassetid://7733960981"
 })
 
-local UIGui = UILib.MakeGui(UILib, {
-    ["NameHub"] = "Sapi Hub BF PvP ˃ᴗ˂",
-    ["Description"] = "Fix By Dragon Toro",
-    ["Color"] = Color3.fromRGB(255, 0, 255),
-    ["Logo Player"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. game:GetService("Players").LocalPlayer.UserId .. "&width=420&height=420&format=png",
-    ["Name Player"] = tostring(game:GetService("Players").LocalPlayer.Name),
-    ["Tab Width"] = 125
+local Tab2 = FlurioreGui:CreateTab({
+    ["Name"] = "Logs",
+    ["Icon"] = "rbxassetid://7734053495"
 })
 
--- ════════════════════════════════════════════
---          TAB 1: Executor Status
--- ════════════════════════════════════════════
-
-local TabStatus = UIGui:CreateTab({
-    ["Name"] = "Status",
+local Tab3 = FlurioreGui:CreateTab({
+    ["Name"] = "Aimbot",
     ["Icon"] = "rbxassetid://7733960981"
 })
 
-local SectionStatus = TabStatus:AddSection("◈ Information")
+local Tab4 = FlurioreGui:CreateTab({
+    ["Name"] = "Silent Aim",
+    ["Icon"] = "rbxassetid://7734053495"
+})
+
+local Tab5 = FlurioreGui:CreateTab({
+    ["Name"] = "Features",
+    ["Icon"] = "rbxassetid://7733960981"
+})
+
+local Tab6 = FlurioreGui:CreateTab({
+    ["Name"] = "Setting",
+    ["Icon"] = "rbxassetid://7734053495"
+})
+
+local SectionStatus = Tab1:AddSection("Information")
+
+SectionStatus:AddButton({
+    ["Title"] = "Discord Server",
+    ["Content"] = "Join our Discord Server for support and updates",
+    ["Icon"] = "rbxassetid://101138166721164",
+    ["Callback"] = function()
+        local link = "discord.gg/upEE5wkdUX"
+        if setclipboard then
+            setclipboard(link)
+            -- dùng hệ thống thông báo của thư viện
+            FlurioreFixLib:MakeNotify({
+                ["Title"] = "Discord",
+                ["Description"] = "Link đã được sao chép",
+                ["Color"] = Color3.fromRGB(0, 170, 255),
+                ["Content"] = link,
+                ["Time"] = 1,
+                ["Delay"] = 3
+            })
+        end
+    end
+})
 
 SectionStatus:AddParagraph({
     ["Title"] = "Executor",
@@ -132,32 +270,14 @@ SectionStatus:AddParagraph({
     ["Content"] = execStatus
 })
 
--- ════════════════════════════════════════════
---          TAB 2: ChangesLogs
--- ════════════════════════════════════════════
-
-local TabLogs = UIGui:CreateTab({
-    ["Name"] = "Logs",
-    ["Icon"] = "rbxassetid://7734053495"
-})
-
-local SectionLogs = TabLogs:AddSection("✏ Updated")
+local SectionLogs = Tab2:AddSection("✏ Updated")
 
 SectionLogs:AddParagraph({
     ["Title"] = "Changelogs",
     ["Content"] = "• Fixed Dropdown Save Settings ✔\n• Added Info Of Target (Name/Health) ✔\n• Optimized Script ✔\n• Improved Fps Boost ✔\n• Fixed Soul Guitar M1 in Silent aim ✔\n• Added RTX Graphic (Visual Vibes) ✔\n• Added Custom Global Text ✔\n• Added Dash No CD ✔\n• Added Remove Fog or Lava ✔\n• Added Z Skills Work (Except Godhuman Z) ✔\n• Added Fruit M1 Closet Attack ✔\n• Fixed Buddy Sword X in Silent aim ✔"
 })
 
--- ════════════════════════════════════════════
---          TAB 3: Aimbot
--- ════════════════════════════════════════════
-
-local TabAim = UIGui:CreateTab({
-    ["Name"] = "Aimbot",
-    ["Icon"] = "rbxassetid://7733960981"
-})
-
-local SectionAim = TabAim:AddSection("☘ Settings")
+local SectionAim = Tab3:AddSection("☘ Settings")
 
 local AimlockPlayersToggle = SectionAim:AddToggle({
     ["Title"] = "Aimlock Players",
@@ -225,16 +345,7 @@ local PredictionAimlockAmountDropdown = SectionAim:AddDropdown({
     end
 })
 
--- ════════════════════════════════════════════
---          TAB 4: Silent Aimbot
--- ════════════════════════════════════════════
-
-local TabSilent = UIGui:CreateTab({
-    ["Name"] = "Silent Aim",
-    ["Icon"] = "rbxassetid://7734053495"
-})
-
-local SectionSilent = TabSilent:AddSection("⚓ Settings")
+local SectionSilent = Tab4:AddSection("⚓ Settings")
 
 local SilentAimPlayersToggle = SectionSilent:AddToggle({
     ["Title"] = "SilentAim Players",
@@ -385,16 +496,7 @@ local ZskillMOneToggle = SectionSilent:AddToggle({
     end
 })
 
--- ════════════════════════════════════════════
---          TAB 5: Features
--- ════════════════════════════════════════════
-
-local TabFeatures = UIGui:CreateTab({
-    ["Name"] = "Features",
-    ["Icon"] = "rbxassetid://7733960981"
-})
-
-local SectionFeatures = TabFeatures:AddSection("⚜ Settings")
+local SectionFeatures = Tab5:AddSection("⚜ Settings")
 
 SectionFeatures:AddButton({
     ["Title"] = "Join Discord",
@@ -616,16 +718,7 @@ local OpponentToggle = SectionFeatures:AddToggle({
     end
 })
 
--- ════════════════════════════════════════════
---          TAB 6: Settings Manager
--- ════════════════════════════════════════════
-
-local TabSettings = UIGui:CreateTab({
-    ["Name"] = "Setting",
-    ["Icon"] = "rbxassetid://7734053495"
-})
-
-local SectionManager = TabSettings:AddSection("💾 Settings Manager")
+local SectionManager = Tab6:AddSection("💾 Settings Manager")
 
 local JobIdInput = SectionManager:AddInput({
     ["Title"] = "Paste Job Id Here",
@@ -812,23 +905,9 @@ OthersStuffsModule:ApplySettings(Settings, {
 
 OthersStuffsModule.StartFruitNotifier()
 
--- ════════════════════════════════════════════
---          KEYBINDS
--- ════════════════════════════════════════════
-
--- Phím M: ẩn/hiện button toggle
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.M then
-        _ImageButton.Visible = not _ImageButton.Visible
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and UserInputService.KeyboardEnabled and input.KeyCode == Enum.KeyCode.G then
-        Settings["SilentAimPlayers"] = not Settings["SilentAimPlayers"]
-        SilentAimModule:SetPlayerSilentAim(Settings["SilentAimPlayers"])
-        if SilentAimPlayersToggle then
-            SilentAimPlayersToggle:Set(Settings["SilentAimPlayers"])
-        end
-    end
-end)
+-- bật HirimiGui nếu có (UI bắt đầu mở)
+local coreGui = game:GetService("CoreGui")
+local hirimi = coreGui:FindFirstChild("HirimiGui")
+if hirimi and hirimi:IsA("ScreenGui") then
+    hirimi.Enabled = true
+end
